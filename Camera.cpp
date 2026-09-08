@@ -1,4 +1,4 @@
-#include<cmath>
+﻿#include<cmath>
 #include "Camera.h"
 #include "Vector3.h"
 #include "Quaternion.h"

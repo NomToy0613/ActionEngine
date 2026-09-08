@@ -1,7 +1,6 @@
 ﻿#include "framework.h"
 #include "ActionEngine.h"
 #include <iostream>
-#include <vector>
 #include <fcntl.h>
 
 // 3D数学ライブラリをインクルード
@@ -11,6 +10,10 @@
 #include "Transform.h"
 #include "Camera.h"
 #include "Projection.h"
+#include "Rasterizer.h"
+#include "Renderer.h"
+#include "Texture.h"
+#include "BMPLoader.h"
 
 using namespace std;
 
@@ -21,47 +24,17 @@ HINSTANCE hInst;
 HWND g_hWnd = nullptr;
 WCHAR szTitle[MAX_LOADSTRING];
 WCHAR szWindowClass[MAX_LOADSTRING];
-constexpr int WINDOW_WIDTH = 640;
-constexpr int WINDOW_HEIGHT = 480;
+
+// Sprint2: サイコロの6面分のテクスチャ（起動時にBMPから読み込む）
+// 面の対応: FACE_FRONT=1, FACE_BACK=6, FACE_LEFT=2, FACE_RIGHT=5, FACE_TOP=3, FACE_BOTTOM=4
+// （サイコロの一般的なルールに合わせ、向かい合う面の目の合計が7になるよう配置）
+Texture g_diceFaceTextures[FACE_COUNT];
+const Texture* g_diceFaceTexturePtrs[FACE_COUNT] = {};
 
 extern Transform  t;
 extern Camera     c;
 extern Projection p;
 extern void GameUpdate(float deltaTime);
-
-// 立方体のローカル座標頂点データ
-vector<Vector3> cubeVertices = {
-     Vector3(-0.5f, -0.5f, -0.5f), // 0: 左下前
-     Vector3(0.5f, -0.5f, -0.5f),  // 1: 右下前
-     Vector3(-0.5f,  0.5f, -0.5f), // 2: 左上前
-     Vector3(0.5f,  0.5f, -0.5f),  // 3: 右上前
-     Vector3(-0.5f, -0.5f,  0.5f), // 4: 左下奥
-     Vector3(0.5f, -0.5f,  0.5f),  // 5: 右下奥
-     Vector3(-0.5f,  0.5f,  0.5f), // 6: 左上奥
-     Vector3(0.5f,  0.5f,  0.5f)   // 7: 右上奥
-};
-
-int edges[12][2] =
-{
-    {0,1},{1,3},{3,2},{2,0},
-    {4,5},{5,7},{7,6},{6,4},
-    {0,4},{1,5},{2,6},{3,7}
-};
-
-int triangles[12][3] =
-{
-    {0,1,2}, {1,3,2}, // 前
-    {4,6,5}, {5,6,7}, // 後
-
-    {0,2,4}, {4,2,6}, // 左
-    {1,5,3}, {5,7,3}, // 右
-
-    {2,3,6}, {6,3,7}, // 上
-    {0,4,1}, {1,4,5}  // 下
-};
-
-float zBuffer[WINDOW_WIDTH][WINDOW_HEIGHT];
-uint32_t pixelBuffer[WINDOW_WIDTH * WINDOW_HEIGHT];
 
 // デバッグ用コンソールを開く関数
 void OpenConsole() {
@@ -74,96 +47,47 @@ void OpenConsole() {
     cout.clear();
 }
 
+// サイコロの6面分のテクスチャを読み込む
+// dice_1.bmp 〜 dice_6.bmp を実行ファイルと同じフォルダに配置しておくこと
+void LoadDiceTextures()
+{
+    struct FaceFile { CubeFace face; const char* path; };
+    const FaceFile files[FACE_COUNT] = {
+        { FACE_FRONT,  "dice_1.bmp" },
+        { FACE_BACK,   "dice_6.bmp" },
+        { FACE_LEFT,   "dice_2.bmp" },
+        { FACE_RIGHT,  "dice_5.bmp" },
+        { FACE_TOP,    "dice_3.bmp" },
+        { FACE_BOTTOM, "dice_4.bmp" },
+    };
+
+    for (const auto& f : files) {
+        if (!BMPLoader::Load(f.path, g_diceFaceTextures[f.face])) {
+            cout << "[警告] " << f.path << " の読み込みに失敗しました。この面は単色フォールバック描画になります。\n";
+            g_diceFaceTexturePtrs[f.face] = nullptr;
+        }
+        else {
+            g_diceFaceTexturePtrs[f.face] = &g_diceFaceTextures[f.face];
+        }
+    }
+}
+
 // 関数の宣言を転送
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
-void DrawPixel(int x, int y, COLORREF color)
-{
-    if (x >= 0 && x < WINDOW_WIDTH && y >= 0 && y < WINDOW_HEIGHT) {
-        // WindowsのCOLORREF(0x00BBGGRR)をDIBのピクセル形式(0x00RRGGBB)に合わせる変換
-        uint32_t r = (color & 0x000000FF);
-        uint32_t g = (color & 0x0000FF00);
-        uint32_t b = (color & 0x00FF0000) >> 16;
-        uint32_t convertedColor = (r << 16) | g | b;
-
-        pixelBuffer[y * WINDOW_WIDTH + x] = convertedColor;
-    }
-}
-
-void DrawLine(HDC hdc, int x0, int y0, int x1, int y1, COLORREF color)
-{
-    int dx = x1 - x0;
-    int dy = y1 - y0;
-    int steps = max(abs(dx), abs(dy));
-    if (steps == 0)
-    {
-        DrawPixel(x0, y0, color);
-        return;
-    }
-
-    float x = (float)x0;
-    float y = (float)y0;
-    float xInc = (float)dx / steps;
-    float yInc = (float)dy / steps;
-
-    for (int i = 0; i <= steps; i++)
-    {
-        DrawPixel((int)x, (int)y, color);
-        x += xInc;
-        y += yInc;
-    }
-}
-
-float Edge(float ax, float ay, float bx, float by, float px, float py)
-{
-    return (px - ax) * (by - ay) - (py - ay) * (bx - ax);
-}
-
-void FillTriangle(HDC hdc, int x0, int y0, float z0, int x1, int y1, float z1, int x2, int y2, float z2, COLORREF color) {
-    int minX = min(x0, min(x1, x2));
-    int maxX = max(x0, max(x1, x2));
-    int minY = min(y0, min(y1, y2));
-    int maxY = max(y0, max(y1, y2));
-    float area = Edge(x0, y0, x1, y1, x2, y2);
-    if (fabs(area) <= 0.0f) return;
-
-    for (int y = minY; y <= maxY; y++)
-    {
-        for (int x = minX; x <= maxX; x++)
-        {
-            float w0 = Edge(x1, y1, x2, y2, x, y);
-            float w1 = Edge(x2, y2, x0, y0, x, y);
-            float w2 = Edge(x0, y0, x1, y1, x, y);
-
-            if ((w0 >= 0 && w1 >= 0 && w2 >= 0) || (w0 <= 0 && w1 <= 0 && w2 <= 0)) {
-                float wSum = w0 + w1 + w2;
-                if (fabs(wSum) < 0.0001f) continue;
-                float z = (w0 * z0 + w1 * z1 + w2 * z2) / wSum;
-                if (x < 0 || x >= WINDOW_WIDTH || y < 0 || y >= WINDOW_HEIGHT) continue;
-                if (z < zBuffer[x][y])
-                {
-                    zBuffer[x][y] = z;
-                    DrawPixel(x, y, color);
-                }
-            }
-        }
-    }
-}
-
 // メイン関数
-int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
-    _In_opt_ HINSTANCE hPrevInstance,
-    _In_ LPWSTR    lpCmdLine,
-    _In_ int       nCmdShow)
-{
+int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR    lpCmdLine, _In_ int nCmdShow) {
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
 
     // コンソールを開く
     OpenConsole();
+
+    // Sprint2: サイコロ6面分のテクスチャを読み込む
+    LoadDiceTextures();
 
     // グローバル文字列を初期化
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
@@ -178,15 +102,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     MSG msg = {};
     ULONGLONG prevTime = GetTickCount64();
 
-    struct ScreenPoint {
-        int x;
-        int y;
-        float z;
-    };
-
     //リアルタイムゲームループ
-    while (msg.message != WM_QUIT)
-    {
+    while (msg.message != WM_QUIT) {
         // メッセージ処理
         while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
         {
@@ -207,18 +124,16 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         if (deltaTime < 0.001f) deltaTime = 0.016f;
         prevTime = curTime;
 
+        // ゲームロジックの更新（入力・カメラ・回転など）
         GameUpdate(deltaTime);
 
-        for (int x = 0; x < WINDOW_WIDTH; x++)
-            for (int y = 0; y < WINDOW_HEIGHT; y++)
-                zBuffer[x][y] = 999999.0f;
+        // フレームバッファの初期化
+        Rasterizer::Clear();
 
-        memset(pixelBuffer, 0, sizeof(pixelBuffer));
-
+        // 変換行列の算出
         Matrix4x4 matWorld = t.world();
         Matrix4x4 matView = c.view();
         Matrix4x4 matProj = p.projection();
-        Matrix4x4 matWVP = matWorld.ply(matView).ply(matProj);
 
         COORD coord = { 0, 0 };
         SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), coord);
@@ -232,90 +147,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         cout << "--- カメラ位置 (Eye) --- \n";
         cout << "X: " << c.eye.x << "  Y: " << c.eye.y << "  Z: " << c.eye.z << "      \n\n";
 
-        cout << "--- クォータニオン回転Cubeのリアルタイム変換頂点座標 --- \n";
-        for (size_t i = 0; i < cubeVertices.size(); ++i) {
-            Vector3 transformedWVP = matWVP.transform(cubeVertices[i]);
+        // カリング・クリッピング・ラスタライズを含む描画処理は Renderer に委譲
+        // 面ごとに異なるダイステクスチャをバインドして描画
+        Renderer::RenderFrame(matWorld, matView, matProj, c.eye, g_diceFaceTexturePtrs);
 
-            cout << "頂点[" << i << "]\n";
-            cout << "Clip : (" << transformedWVP.x << ", " << transformedWVP.y << ", " << transformedWVP.z << ", " << transformedWVP.w << ")\n";
-
-            Vector3 ndc = transformedWVP;
-
-            if (ndc.w != 0.0f)
-            {
-                ndc.x /= ndc.w;
-                ndc.y /= ndc.w;
-                ndc.z /= ndc.w;
-            }
-            int screenX = (int)((ndc.x + 1.0f) * 0.5f * WINDOW_WIDTH);
-            int screenY = (int)((1.0f - ndc.y) * 0.5f * WINDOW_HEIGHT);
-            cout << "Screen : (" << screenX << ", " << screenY << ")\n";
-            cout << "NDC  : (" << ndc.x << ", " << ndc.y << ", " << ndc.z << ")\n\n";
-
-        }
-
-        ScreenPoint screenVertices[8] = {};
-
-        for (size_t i = 0; i < cubeVertices.size(); i++)
-        {
-            Vector3 clip = matWVP.transform(cubeVertices[i]);
-
-            if (fabs(clip.w) > 1e-6f)
-            {
-                clip.x /= clip.w;
-                clip.y /= clip.w;
-                clip.z /= clip.w;
-            }
-
-            screenVertices[i].x = (int)((clip.x + 1.0f) * 0.5f * WINDOW_WIDTH);
-            screenVertices[i].y = (int)((1.0f - clip.y) * 0.5f * WINDOW_HEIGHT);
-            screenVertices[i].z = clip.z;
-        }
-
-        COLORREF faceColors[12] = {
-            RGB(255,   0,   0), RGB(255,   0,   0), // 前面：赤
-            RGB(0, 255,   0), RGB(0, 255,   0), // 背面：緑
-            RGB(0,   0, 255), RGB(0,   0, 255), // 上面：青
-            RGB(255, 255,   0), RGB(255, 255,   0), // 下面：黄
-            RGB(255,   0, 255), RGB(255,   0, 255), // 左面：紫
-            RGB(0, 255, 255), RGB(0, 255, 255)  // 右面：水色
-        };
-
-        for (int i = 0; i < 12; i++)
-        {
-            int a = triangles[i][0];
-            int b = triangles[i][1];
-            int c = triangles[i][2];
-            FillTriangle(
-                nullptr,
-                screenVertices[a].x, screenVertices[a].y, screenVertices[a].z,
-                screenVertices[b].x, screenVertices[b].y, screenVertices[b].z,
-                screenVertices[c].x, screenVertices[c].y, screenVertices[c].z,
-                faceColors[i]
-            );
-        }
-
-        HDC hdc = GetDC(g_hWnd);
-
-        BITMAPINFO bmi = {};
-        bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-        bmi.bmiHeader.biWidth = WINDOW_WIDTH;
-        bmi.bmiHeader.biHeight = -WINDOW_HEIGHT;
-        bmi.bmiHeader.biPlanes = 1;
-        bmi.bmiHeader.biBitCount = 32;
-        bmi.bmiHeader.biCompression = BI_RGB;
-
-        StretchDIBits(
-            hdc,
-            0, 0, WINDOW_WIDTH, WINDOW_HEIGHT,
-            0, 0, WINDOW_WIDTH, WINDOW_HEIGHT,
-            pixelBuffer,
-            &bmi,
-            DIB_RGB_COLORS,
-            SRCCOPY
-        );
-
-        ReleaseDC(g_hWnd, hdc);
+        // フレームバッファをウィンドウへ転送
+        Rasterizer::Present(g_hWnd);
 
         Sleep(16); // 60FPS
     }
@@ -347,7 +184,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
     hInst = hInstance;
     g_hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-        CW_USEDEFAULT, 0, WINDOW_WIDTH, WINDOW_HEIGHT, nullptr, nullptr, hInstance, nullptr);
+        CW_USEDEFAULT, 0, Rasterizer::WINDOW_WIDTH, Rasterizer::WINDOW_HEIGHT, nullptr, nullptr, hInstance, nullptr);
 
     if (!g_hWnd) return FALSE;
 

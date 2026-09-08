@@ -1,4 +1,4 @@
-#include "Matrix4x4.h"
+﻿#include "Matrix4x4.h"
 #include <cmath>
 using namespace std;
 
@@ -95,12 +95,18 @@ Matrix4x4 Matrix4x4::rotaZ(float angle) const {
 
 //ベクトルの移動・回転
 Vector3 Matrix4x4::transform(const Vector3& o) const {
-    return Vector3(
+    Vector3 result(
         o.x * M[0][0] + o.y * M[1][0] + o.z * M[2][0] + o.w * M[3][0],
         o.x * M[0][1] + o.y * M[1][1] + o.z * M[2][1] + o.w * M[3][1],
         o.x * M[0][2] + o.y * M[1][2] + o.z * M[2][2] + o.w * M[3][2],
         o.x * M[0][3] + o.y * M[1][3] + o.z * M[2][3] + o.w * M[3][3]
     );
+
+    // UVは空間変換の対象ではないため、そのまま引き継ぐ
+    result.u = o.u;
+    result.v = o.v;
+
+    return result;
 }
 
 //ビュー変換行列
