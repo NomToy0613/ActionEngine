@@ -37,17 +37,16 @@ void OpenConsole()
 }
 
 // サイコロの6面分のテクスチャを読み込む
-// dice_1.bmp 〜 dice_6.bmp を実行ファイルと同じフォルダに配置しておくこと
 void LoadDiceTextures()
 {
     struct FaceFile { CubeFace face; const char* path; };
     const FaceFile files[FACE_COUNT] = {
-        { FACE_FRONT,  "dice_1.bmp" },
-        { FACE_BACK,   "dice_6.bmp" },
-        { FACE_LEFT,   "dice_2.bmp" },
-        { FACE_RIGHT,  "dice_5.bmp" },
-        { FACE_TOP,    "dice_3.bmp" },
-        { FACE_BOTTOM, "dice_4.bmp" },
+        { FACE_FRONT,  "Assets/Textures/dice_1.bmp" },
+        { FACE_BACK,   "Assets/Textures/dice_6.bmp" },
+        { FACE_LEFT,   "Assets/Textures/dice_2.bmp" },
+        { FACE_RIGHT,  "Assets/Textures/dice_5.bmp" },
+        { FACE_TOP,    "Assets/Textures/dice_3.bmp" },
+        { FACE_BOTTOM, "Assets/Textures/dice_4.bmp" },
     };
 
     for (const auto& f : files) {
@@ -67,7 +66,7 @@ void GameInitialize()
     LoadDiceTextures();
     Scene& scene = SceneManager::GetActiveScene();
 
-    if (!ObjLoader::Load("polar_bear.obj", g_testMesh)) {
+    if (!ObjLoader::Load("Assets/Models/polar_bear.obj", g_testMesh)) {
         cout << "[警告] polar_bear.obj の読み込みに失敗しました。\n";
     }
     g_testMaterial.texture = nullptr; // テクスチャ無し、フォールバック色で表示
@@ -79,7 +78,7 @@ void GameInitialize()
     bear1->hasMeshRenderer = true;
     bear1->transform.posi = Vector3(-2.0f, 0.0f, 0.0f);
 
-    if (!ObjLoader::Load("penguin_blue.obj", g_penguinMesh)) {
+    if (!ObjLoader::Load("Assets/Models/penguin_blue.obj", g_penguinMesh)) {
         cout << "[警告] penguin_blue.obj の読み込みに失敗しました。\n";
     }
     g_penguinMaterial.texture = nullptr;
