@@ -1,4 +1,4 @@
-﻿#include "BMPLoader.h"
+﻿#include "BMPloader.h"
 #include <fstream>
 #include <cstdint>
 #include <vector>

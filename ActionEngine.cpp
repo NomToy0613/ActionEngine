@@ -5,8 +5,8 @@
 #include "Vector3.h"
 #include "Renderer.h"
 #include "Texture.h"
-#include "BMPLoader.h"
-#include "ObjLoader.h"
+#include "BMPloader.h"
+#include "OBJloader.h"
 #include "Mesh.h"
 #include "SceneManager.h" 
 
