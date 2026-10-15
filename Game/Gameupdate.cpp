@@ -26,14 +26,17 @@ extern Material g_testMaterial;
 void GameUpdate(float deltaTime)
 {
     // クォータニオンによるCubeの自動回転 (毎フレーム少しずつ回転)
+    /*
     float rotationSpeed = 1.0f * deltaTime;
     Quaternion deltaRot = Quaternion::axis(rotationSpeed, Vector3(0.0f, 1.0f, 0.0f));
-
+    */
+    
     // 現在の回転に掛け合わせることで、ジンバルロックなしで滑らかに回り続ける
+    /*
     for (auto& go : SceneManager::GetActiveScene().objects) {
         go->transform.rota = go->transform.rota.ply(deltaRot);
     }
-
+    */
 
     // マウスによる視点操作（ピッチ・ヨー）
     float mouseDx = 0.0f;
@@ -71,7 +74,7 @@ void GameUpdate(float deltaTime)
     if (c.pitch > 1.5f) c.pitch = 1.5f;
     if (c.pitch < -1.5f) c.pitch = -1.5f;
 
-
+    /*
     // WASDキーによるカメラの移動
     Vector3 forward = c.target.sub(c.eye).normalize();
     Vector3 right = forward.crosspro(c.up).normalize();
@@ -84,6 +87,30 @@ void GameUpdate(float deltaTime)
         c.eye = c.eye.add(right.ply(speed));
     if (Input::GetKey(KeyCode::A))
         c.eye = c.eye.sub(right.ply(speed));
+    */
+
+    // WASDキーによるプレイヤーの移動
+    static GameObject* player = nullptr;
+    if (!player) player = SceneManager::GetActiveScene().Find("Penguin");
+
+    Vector3 move(0.0f, 0.0f, 0.0f);
+    float speed = 5.0f * deltaTime; // 移動速度（1秒間に5ユニット）
+
+    if (Input::GetKey(KeyCode::W))
+        move.z += 1.0f;
+    if (Input::GetKey(KeyCode::S))
+        move.z -= 1.0f;
+    if (Input::GetKey(KeyCode::D))
+        move.x += 1.0f;
+    if (Input::GetKey(KeyCode::A))
+        move.x -= 1.0f;
+
+    // キーを読み終えてから正規化する（斜め移動が速くならないように）
+    move = move.normalize();
+
+    if (player) {
+        player->transform.posi = player->transform.posi.add(move.ply(speed));
+    }
 
     c.updateVectors();
 }

@@ -10,6 +10,7 @@ public:
     std::vector<std::unique_ptr<GameObject>> objects;
 
     GameObject* CreateGameObject(const std::string& name = "GameObject");
+    GameObject* Find(const std::string& name) const;
 
     // Rendererに現在のView/Projection/Eyeをセットしたうえで、
     // 全オブジェクトを順にDrawMeshする

@@ -6,6 +6,16 @@ GameObject* Scene::CreateGameObject(const std::string& name)
     return objects.back().get();
 }
 
+GameObject* Scene::Find(const std::string& name) const
+{
+    for(const auto& go : objects){
+        if(go->name == name)
+            return go.get();
+    }
+
+    return nullptr;
+}
+
 void Scene::Render(Renderer& renderer, const Matrix4x4& matView, const Matrix4x4& matProj, const Vector3& eye) const
 {
     renderer.SetView(matView);

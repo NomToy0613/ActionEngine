@@ -25,10 +25,16 @@ Material g_testMaterial;
 ObjMesh  g_penguinMesh;
 Material g_penguinMaterial;
 
+// 床
+ObjMesh g_groundMesh;
+Texture  g_groundTexture;
+Material g_groundMaterial;
+
 // デバッグ用コンソールを開く関数
 void OpenConsole()
 {
     AllocConsole();
+    SetConsoleOutputCP(CP_UTF8);
     FILE* fp;
     freopen_s(&fp, "CONOUT$", "w", stdout);
     freopen_s(&fp, "CONOUT$", "w", stderr);
@@ -60,6 +66,47 @@ void LoadDiceTextures()
     }
 }
 
+// 床（四角形1枚）のメッシュを作る。uvRepeat でテクスチャの繰り返し回数を決める
+ObjMesh MakeGroundMesh(float halfSize, float uvRepeat)
+{
+    ObjMesh mesh;
+    const float h = halfSize;
+    const float r = uvRepeat;
+
+    // 頂点0：左下手前
+    Vertex v0;
+    v0.position = Vector3(-h, 0.0f, -h);
+    v0.u = 0.0f;  v0.v = 0.0f;
+    v0.nx = 0.0f; v0.ny = 1.0f; v0.nz = 0.0f;
+    mesh.vertices.push_back(v0);
+
+    // 頂点1
+    Vertex v1;
+    v1.position = Vector3(-h, 0.0f, h);
+    v1.u = 0.0f;  v1.v = r;
+    v1.nx = 0.0f; v1.ny = 1.0f; v1.nz = 0.0f;
+    mesh.vertices.push_back(v1);
+
+    // 頂点2
+    Vertex v2;
+    v2.position = Vector3(h, 0.0f, h);
+    v2.u = r;  v2.v = r;
+    v2.nx = 0.0f; v2.ny = 1.0f; v2.nz = 0.0f;
+    mesh.vertices.push_back(v2);
+
+    // 頂点3
+    Vertex v3;
+    v3.position = Vector3(h, 0.0f, -h);
+    v3.u = r;  v3.v = 0.0f;
+    v3.nx = 0.0f; v3.ny = 1.0f; v3.nz = 0.0f;
+    mesh.vertices.push_back(v3);
+
+    // 三角形2つ分の番号
+    mesh.indices = { 0, 1, 2,  0, 2, 3 };
+
+    return mesh;
+}
+
 // アセットの読み込みなど、ゲーム側の起動時初期化をまとめる
 void GameInitialize()
 {
@@ -88,7 +135,18 @@ void GameInitialize()
     penguin->meshRenderer.mesh = &g_penguinMesh;
     penguin->meshRenderer.material = g_penguinMaterial;
     penguin->hasMeshRenderer = true;
-    penguin->transform.posi = Vector3(4.0f, 0.0f, 0.0f); // 既存オブジェクトと離した位置
+    penguin->transform.posi = Vector3(4.0f, 1.45f, 0.0f); // 既存オブジェクトと離した位置
+
+    if(!BMPLoader::Load("Assets/Textures/checker.bmp", g_groundTexture)){
+        cout << "[警告] checker.bmp の読み込みに失敗しました。\n";
+    }
+    g_groundMesh = MakeGroundMesh(20.0f, 20.0f);
+    g_groundMaterial.texture = &g_groundTexture;
+
+    GameObject* ground = scene.CreateGameObject("Ground");
+    ground->meshRenderer.mesh = &g_groundMesh;
+    ground->meshRenderer.material = g_groundMaterial;
+    ground->hasMeshRenderer = true;
 }
 
 // メイン関数
