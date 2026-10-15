@@ -43,9 +43,9 @@ static Vector3 IntersectPlane(const Vector3& cur, const Vector3& next, uint8_t p
 
     switch (plane)
     {
-    case CLIP_LEFT:   t = (-cur.w - cur.x) / ((next.x - cur.x) - (next.w - cur.w)); break;
+    case CLIP_LEFT:   t = (-cur.w - cur.x) / ((next.x - cur.x) + (next.w - cur.w)); break;
     case CLIP_RIGHT:  t = (cur.w - cur.x) / ((next.x - cur.x) - (next.w - cur.w)); break;
-    case CLIP_BOTTOM: t = (-cur.w - cur.y) / ((next.y - cur.y) - (next.w - cur.w)); break;
+    case CLIP_BOTTOM: t = (-cur.w - cur.y) / ((next.y - cur.y) + (next.w - cur.w)); break;
     case CLIP_TOP:    t = (cur.w - cur.y) / ((next.y - cur.y) - (next.w - cur.w)); break;
     case CLIP_NEAR:   t = (0.0f - cur.z) / (next.z - cur.z); break;
     case CLIP_FAR:    t = (cur.w - cur.z) / ((next.z - cur.z) - (next.w - cur.w)); break;
@@ -55,7 +55,9 @@ static Vector3 IntersectPlane(const Vector3& cur, const Vector3& next, uint8_t p
         cur.x + (next.x - cur.x) * t,
         cur.y + (next.y - cur.y) * t,
         cur.z + (next.z - cur.z) * t,
-        cur.w + (next.w - cur.w) * t
+        cur.w + (next.w - cur.w) * t,
+        cur.u + (next.u - cur.u) * t,
+        cur.v + (next.v - cur.v) * t
     );
 }
 
