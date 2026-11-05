@@ -1,6 +1,6 @@
 CXX      = x86_64-w64-mingw32-g++
 CXXFLAGS = -std=c++17 -Wall -MMD -MP
-LDFLAGS  = -municode -mwindows -static
+LDFLAGS  = -municode -mwindows -static -ld3d11 -ldxgi -ld3dcompiler_47
 LIBS     = -lgdi32 -luser32
 TARGET   = ActionEngine.exe
 BUILDDIR = build
