@@ -13,7 +13,16 @@ Application::Application(HINSTANCE hInst, int cmdShow, int width, int height)
 
 bool Application::Initialize()
 {
-    return window.Create(hInstance, nCmdShow, WndProc);
+    if (!window.Create(hInstance, nCmdShow, WndProc)) {
+        return false;
+    }
+
+    if (!d3d.Initialize(window.GetHandle(), window.GetWidth(), window.GetHeight())) {
+        printf("D3D11 initialization failed\n");
+        return false;
+    }
+
+    return true;
 }
 
 int Application::Run()
@@ -25,9 +34,14 @@ int Application::Run()
 
         GameUpdate(deltaTime);
 
-        renderer.BeginFrame();
-        GameRender(renderer);
-        renderer.EndFrame(window.GetHandle());
+        if (useD3D11) {
+            d3d.BeginFrame(0.1f, 0.2f, 0.4f);   // 紺色でクリア
+            d3d.EndFrame();
+        } else {
+            renderer.BeginFrame();
+            GameRender(renderer);
+            renderer.EndFrame(window.GetHandle());
+        }
 
         Sleep(16); // 60FPS目安（既存ロジック踏襲）
     }
