@@ -2,7 +2,7 @@
 #include <windows.h>
 #include "Window.h"
 #include "Time.h"
-#include "Renderer.h"
+#include "SoftwareRenderer.h"
 #include "D3D11Context.h" 
 
 // エンジンの土台。Window/Time/Renderer を内部に持ち、
@@ -21,7 +21,7 @@ private:
 
     Window   window;
     Time     time;
-    Renderer renderer;
+    SoftwareRenderer renderer;
     D3D11Context d3d;
 
     bool useD3D11 = true; 

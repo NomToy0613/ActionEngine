@@ -17,6 +17,10 @@ bool Application::Initialize()
         return false;
     }
 
+    if (!renderer.Initialize(window.GetHandle())) {
+        return false;
+    }
+
     if (!d3d.Initialize(window.GetHandle(), window.GetWidth(), window.GetHeight())) {
         printf("D3D11 initialization failed\n");
         return false;
@@ -46,7 +50,7 @@ int Application::Run()
         } else {
             renderer.BeginFrame();
             GameRender(renderer);
-            renderer.EndFrame(window.GetHandle());
+            renderer.EndFrame();
         }
 
         Sleep(16); // 60FPS目安（既存ロジック踏襲）

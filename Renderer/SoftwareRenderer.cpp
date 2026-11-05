@@ -1,4 +1,4 @@
-﻿#include "Renderer.h"
+﻿#include "SoftwareRenderer.h"
 #include "Culling.h"
 #include "Clipping.h"
 #include "Texture.h"
@@ -216,26 +216,32 @@ namespace {
     }
 } // namespace
 
-Renderer::Renderer(int width, int height)
+SoftwareRenderer::SoftwareRenderer(int width, int height)
     : rasterizer(width, height)
 {}
 
-void Renderer::SetWorld(const Matrix4x4& m) { matWorld = m; }
-void Renderer::SetView(const Matrix4x4& m) { matView = m; }
-void Renderer::SetProjection(const Matrix4x4& m) { matProj = m; }
-void Renderer::SetEye(const Vector3& e) { eye = e; }
+void SoftwareRenderer::SetWorld(const Matrix4x4& m) { matWorld = m; }
+void SoftwareRenderer::SetView(const Matrix4x4& m) { matView = m; }
+void SoftwareRenderer::SetProjection(const Matrix4x4& m) { matProj = m; }
+void SoftwareRenderer::SetEye(const Vector3& e) { eye = e; }
 
-void Renderer::BeginFrame()
+void SoftwareRenderer::BeginFrame()
 {
     rasterizer.Clear();
 }
 
-void Renderer::EndFrame(HWND hWnd)
+bool SoftwareRenderer::Initialize(HWND hWnd)
+{
+    this->hWnd = hWnd;
+    return true;
+}
+
+void SoftwareRenderer::EndFrame()
 {
     rasterizer.Present(hWnd);
 }
 
-void Renderer::DrawMesh(const ObjMesh& mesh, const Material& material)
+void SoftwareRenderer::DrawMesh(const ObjMesh& mesh, const Material& material)
 {
     if (!mesh.IsValid()) return;
 
@@ -265,7 +271,7 @@ void Renderer::DrawMesh(const ObjMesh& mesh, const Material& material)
     }
 }
 
-void Renderer::DrawDiceFrame(const Texture* const faceTextures[FACE_COUNT])
+void SoftwareRenderer::DrawDiceFrame(const Texture* const faceTextures[FACE_COUNT])
 {
     Matrix4x4 matWVP = matWorld.ply(matView).ply(matProj);
 
