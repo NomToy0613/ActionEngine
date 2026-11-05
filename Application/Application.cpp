@@ -22,6 +22,11 @@ bool Application::Initialize()
         return false;
     }
 
+    if (!d3d.InitTriangle()) {
+        printf("Triangle init failed\n");
+        return false;
+    }
+
     return true;
 }
 
@@ -36,6 +41,7 @@ int Application::Run()
 
         if (useD3D11) {
             d3d.BeginFrame(0.1f, 0.2f, 0.4f);   // 紺色でクリア
+            d3d.DrawTriangle();
             d3d.EndFrame();
         } else {
             renderer.BeginFrame();
