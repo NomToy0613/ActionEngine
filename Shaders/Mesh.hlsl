@@ -5,8 +5,11 @@ cbuffer PerObject : register(b0)
     float3 lightDir;
     float  ambient;
     float3 color;
-    float  pad;
+    float  useTexture;
 };
+
+Texture2D    tex : register(t0);
+SamplerState samp : register(s0);
 
 struct VSInput
 {
@@ -43,5 +46,12 @@ float4 PSMain(PSInput input) : SV_TARGET
     float ndotl = saturate(dot(normal, -lightDir));
     float intensity = ambient + (1.0f - ambient) * ndotl;
 
-    return float4(color * intensity, 1.0f);
+    // テクスチャがなければ単色
+    float3 basecolor = color;
+    if (useTexture > 0.5f) {
+        float2 uv = float2(input.uv.x, 1.0f - input.uv.y);
+        basecolor = tex.Sample(samp, uv).rgb;
+    }
+
+    return float4(basecolor* intensity, 1.0f);
 }

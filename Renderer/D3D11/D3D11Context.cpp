@@ -219,11 +219,20 @@ bool D3D11Context::InitMeshPipeline()
     hr = m_device->CreateBuffer(&cbd, nullptr, m_perObjectCB.GetAddressOf());
     if (FAILED(hr)) return false;
 
+    D3D11_SAMPLER_DESC sd = {};
+    sd.Filter   = D3D11_FILTER_MIN_MAG_MIP_POINT;
+    sd.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+    sd.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+    sd.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+    sd.MaxLOD   = D3D11_FLOAT32_MAX;
+
+    hr = m_device->CreateSamplerState(&sd, m_pointSampler.GetAddressOf());
     return true;
 }
 
 void D3D11Context::DrawMesh(ID3D11Buffer* vertexBuffer, ID3D11Buffer* indexBuffer,
-                            UINT indexCount, const PerObjectCB& cb)
+                            UINT indexCount, const PerObjectCB& cb,
+                            ID3D11ShaderResourceView* texture)
 {
     // 定数バッファを書き換える
     D3D11_MAPPED_SUBRESOURCE mapped;
@@ -251,6 +260,8 @@ void D3D11Context::DrawMesh(ID3D11Buffer* vertexBuffer, ID3D11Buffer* indexBuffe
     m_context->VSSetConstantBuffers(0, 1, m_perObjectCB.GetAddressOf());
     m_context->PSSetShader(m_meshPS.Get(), nullptr, 0);
     m_context->PSSetConstantBuffers(0, 1, m_perObjectCB.GetAddressOf());
+    m_context->PSSetShaderResources(0, 1, &texture);
+    m_context->PSSetSamplers(0, 1, m_pointSampler.GetAddressOf());
 
     m_context->DrawIndexed(indexCount, 0, 0);
 }

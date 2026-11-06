@@ -57,7 +57,13 @@ void D3D11Renderer::DrawMesh(const ObjMesh& mesh, const Material& material)
     cb.color[1] = GetGValue(material.fallbackColor) / 255.0f;
     cb.color[2] = GetBValue(material.fallbackColor) / 255.0f;
 
-    context.DrawMesh(gpu->vertexBuffer.Get(), gpu->indexBuffer.Get(), gpu->indexCount, cb);
+    ID3D11ShaderResourceView* srv = nullptr;
+    if (material.texture != nullptr) {
+        srv = GetOrCreateTexture(*material.texture);
+    }
+    cb.useTexture = (srv != nullptr) ? 1.0f : 0.0f;
+
+    context.DrawMesh(gpu->vertexBuffer.Get(), gpu->indexBuffer.Get(), gpu->indexCount, cb, srv);
 }
 
 D3D11Renderer::GpuMesh* D3D11Renderer::GetOrCreateGpuMesh(const ObjMesh& mesh)
@@ -102,4 +108,47 @@ D3D11Renderer::GpuMesh* D3D11Renderer::GetOrCreateGpuMesh(const ObjMesh& mesh)
 
     auto result = meshCache.emplace(&mesh, gpu);
     return &result.first->second;
+}
+
+ID3D11ShaderResourceView* D3D11Renderer::GetOrCreateTexture(const Texture& texture)
+{
+    auto it = textureCache.find(&texture);
+    if (it != textureCache.end()) return it->second.Get();
+
+    if (!texture.IsValid()) return nullptr;
+
+    // RGB(3バイト)→ RGBA(4バイト)に詰め替える
+    const size_t pixelCount = static_cast<size_t>(texture.width) * texture.height;
+    std::vector<uint8_t> rgba(pixelCount * 4);
+    for (size_t i = 0; i < pixelCount; i++) {
+        rgba[i * 4 + 0] = texture.pixels[i * 3 + 0];
+        rgba[i * 4 + 1] = texture.pixels[i * 3 + 1];
+        rgba[i * 4 + 2] = texture.pixels[i * 3 + 2];
+        rgba[i * 4 + 3] = 255;
+    }
+
+    D3D11_TEXTURE2D_DESC td = {};
+    td.Width            = texture.width;
+    td.Height           = texture.height;
+    td.MipLevels        = 1;
+    td.ArraySize        = 1;
+    td.Format           = DXGI_FORMAT_R8G8B8A8_UNORM;
+    td.SampleDesc.Count = 1;
+    td.Usage            = D3D11_USAGE_IMMUTABLE;
+    td.BindFlags        = D3D11_BIND_SHADER_RESOURCE;
+
+    D3D11_SUBRESOURCE_DATA init = {};
+    init.pSysMem     = rgba.data();
+    init.SysMemPitch = texture.width * 4;
+
+    ID3D11Device* device = context.GetDevice();
+
+    Microsoft::WRL::ComPtr<ID3D11Texture2D> gpuTexture;
+    if (FAILED(device->CreateTexture2D(&td, &init, gpuTexture.GetAddressOf()))) return nullptr;
+
+    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv;
+    if (FAILED(device->CreateShaderResourceView(gpuTexture.Get(), nullptr, srv.GetAddressOf()))) return nullptr;
+
+    textureCache[&texture] = srv;
+    return srv.Get();
 }

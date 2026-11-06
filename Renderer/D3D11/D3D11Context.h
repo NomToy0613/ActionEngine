@@ -19,7 +19,7 @@ struct PerObjectCB
     float lightDir[3];
     float ambient;
     float color[3];
-    float pad;
+    float useTexture;
 };
 
 class D3D11Context
@@ -35,7 +35,8 @@ public:
     ID3D11Device* GetDevice() const { return m_device.Get(); }
 
     void DrawMesh(ID3D11Buffer* m_vertexBuffer, ID3D11Buffer* indexBuffer,
-                  UINT indexCount, const PerObjectCB& cb);
+                  UINT indexCount, const PerObjectCB& cb,
+                  ID3D11ShaderResourceView* texture);
 
 private:
     Microsoft::WRL::ComPtr<ID3D11Device>           m_device;
@@ -52,6 +53,7 @@ private:
     Microsoft::WRL::ComPtr<ID3D11PixelShader>      m_meshPS;
     Microsoft::WRL::ComPtr<ID3D11InputLayout>      m_meshLayout;
     Microsoft::WRL::ComPtr<ID3D11Buffer>           m_perObjectCB;
+    Microsoft::WRL::ComPtr<ID3D11SamplerState> m_pointSampler;
 
     int m_width  = 0;
     int m_height = 0;

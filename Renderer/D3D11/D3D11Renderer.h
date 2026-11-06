@@ -39,6 +39,8 @@ private:
 
     // 一度変換したメッシュを覚えておく(キーは元のObjMeshのアドレス)
     std::unordered_map<const ObjMesh*, GpuMesh> meshCache;
+    std::unordered_map<const Texture*, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>> textureCache;
 
     GpuMesh* GetOrCreateGpuMesh(const ObjMesh& mesh);
+    ID3D11ShaderResourceView* GetOrCreateTexture(const Texture& texture);
 };
