@@ -3,13 +3,18 @@
 
 void Time::Tick()
 {
-    unsigned long long cur = GetTickCount64();
+    LARGE_INTEGER now;
+    QueryPerformanceCounter(&now);
+
     if (first) {
-        prevTicks = cur;
+        LARGE_INTEGER freq;
+        QueryPerformanceFrequency(&freq);
+        frequency   = freq.QuadPart;
+        prevCounter = now.QuadPart;
         first = false;
     }
 
-    deltaTime = (cur - prevTicks) / 1000.0f;
-    if (deltaTime < 0.001f) deltaTime = 0.016f; // 起動直後などの異常値をガード（既存ロジック踏襲）
-    prevTicks = cur;
+    deltaTime = static_cast<float>(now.QuadPart - prevCounter) / static_cast<float>(frequency);
+    if (deltaTime > 0.1f) deltaTime = 0.1f;   // ウィンドウを掴んで止めた後などの大きすぎる値を抑える
+    prevCounter = now.QuadPart;
 }

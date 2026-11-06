@@ -40,6 +40,16 @@ int Application::Run()
         time.Tick();
         float deltaTime = time.GetDeltaTime();
 
+        // 1秒ごとにFPSをコンソールに出す
+        fpsTimer  += deltaTime;
+        fpsFrames += 1;
+        if (fpsTimer >= 1.0f) {
+            printf("FPS: %d (%s)\n", fpsFrames,
+                   renderer == &d3d11Renderer ? "D3D11" : "Software");
+            fpsTimer  = 0.0f;
+            fpsFrames = 0;
+        }
+
         GameUpdate(deltaTime);
 
         bool tabDown = Input::GetKey(KeyCode::Tab);
@@ -56,7 +66,6 @@ int Application::Run()
         GameRender(*renderer);
         renderer->EndFrame();
 
-        Sleep(16); // 60FPS目安（既存ロジック踏襲）
     }
     return 0;
 }

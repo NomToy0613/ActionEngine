@@ -8,7 +8,8 @@ public:
     float GetDeltaTime() const { return deltaTime; }
 
 private:
-    unsigned long long prevTicks = 0;
+    long long prevCounter = 0;   // 前のフレームのカウンタ値
+    long long frequency   = 0;   // 1秒あたりのカウント数
     float deltaTime = 0.0f;
     bool  first = true;
 };

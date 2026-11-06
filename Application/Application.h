@@ -26,7 +26,10 @@ private:
     D3D11Renderer    d3d11Renderer;
     Renderer*        renderer = nullptr;
 
-    bool useD3D11 = true; 
+    bool useD3D11  = true; 
+
+    float fpsTimer = 0.0f;
+    int fpsFrames  = 0;
 
     static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 };

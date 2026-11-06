@@ -10,7 +10,6 @@ D3D11Renderer::D3D11Renderer(int width, int height)
 bool D3D11Renderer::Initialize(HWND hWnd)
 {
     if (!context.Initialize(hWnd, width, height)) return false;
-    if (!context.InitTriangle()) return false;   // 仮:三角形テスト用
     if (!context.InitMeshPipeline()) return false;
     return true;
 }
@@ -23,7 +22,6 @@ void D3D11Renderer::SetEye(const Vector3& e)          { eye = e; }
 void D3D11Renderer::BeginFrame()
 {
     context.BeginFrame(0.1f, 0.2f, 0.4f);
-    // context.DrawTriangle();   // 仮:インターフェース経由で動くかの確認用
 }
 
 void D3D11Renderer::EndFrame()
