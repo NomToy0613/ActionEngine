@@ -3,7 +3,7 @@
 #include "Window.h"
 #include "Time.h"
 #include "SoftwareRenderer.h"
-#include "D3D11Context.h" 
+#include "D3D11Renderer.h" 
 
 // エンジンの土台。Window/Time/Renderer を内部に持ち、
 // メインループ（メッセージポンプ→GameUpdate→描画）の面倒を一手に引き受ける。
@@ -16,13 +16,15 @@ public:
     int  Run();
 
 private:
-    HINSTANCE hInstance;
-    int nCmdShow;
+    HINSTANCE        hInstance;
+    int              nCmdShow;
+    bool             prevTabDown = false;
 
-    Window   window;
-    Time     time;
-    SoftwareRenderer renderer;
-    D3D11Context d3d;
+    Window           window;
+    Time             time;
+    SoftwareRenderer softwareRenderer;
+    D3D11Renderer    d3d11Renderer;
+    Renderer*        renderer = nullptr;
 
     bool useD3D11 = true; 
 

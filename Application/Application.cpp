@@ -1,4 +1,5 @@
 ﻿#include "Application.h"
+#include "Input.h"
 
 // GameUpdate.cpp 側で定義されているゲームロジック本体
 extern void GameUpdate(float deltaTime);
@@ -8,7 +9,8 @@ Application::Application(HINSTANCE hInst, int cmdShow, int width, int height)
     : hInstance(hInst)
     , nCmdShow(cmdShow)
     , window(width, height, L"ActionEngine")
-    , renderer(width, height)
+    , softwareRenderer(width, height)
+    , d3d11Renderer(width, height)
 {}
 
 bool Application::Initialize()
@@ -17,19 +19,16 @@ bool Application::Initialize()
         return false;
     }
 
-    if (!renderer.Initialize(window.GetHandle())) {
+    if (!softwareRenderer.Initialize(window.GetHandle())) {
         return false;
     }
 
-    if (!d3d.Initialize(window.GetHandle(), window.GetWidth(), window.GetHeight())) {
+    if (!d3d11Renderer.Initialize(window.GetHandle())) {
         printf("D3D11 initialization failed\n");
         return false;
     }
 
-    if (!d3d.InitTriangle()) {
-        printf("Triangle init failed\n");
-        return false;
-    }
+    renderer = &d3d11Renderer;
 
     return true;
 }
@@ -43,15 +42,19 @@ int Application::Run()
 
         GameUpdate(deltaTime);
 
-        if (useD3D11) {
-            d3d.BeginFrame(0.1f, 0.2f, 0.4f);   // 紺色でクリア
-            d3d.DrawTriangle();
-            d3d.EndFrame();
-        } else {
-            renderer.BeginFrame();
-            GameRender(renderer);
-            renderer.EndFrame();
+        bool tabDown = Input::GetKey(KeyCode::Tab);
+        if (tabDown && !prevTabDown) {
+            if (renderer == &d3d11Renderer) {
+                renderer = &softwareRenderer;
+            } else {
+                renderer = &d3d11Renderer;
+            }
         }
+        prevTabDown = tabDown;
+
+        renderer->BeginFrame();
+        GameRender(*renderer);
+        renderer->EndFrame();
 
         Sleep(16); // 60FPS目安（既存ロジック踏襲）
     }

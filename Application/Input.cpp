@@ -13,6 +13,7 @@ namespace {
         case KeyCode::D:               return 'D';
         case KeyCode::Space:           return VK_SPACE;
         case KeyCode::Escape:          return VK_ESCAPE;
+        case KeyCode::Tab:             return VK_TAB;
         case KeyCode::LeftMouseButton: return VK_LBUTTON;
         case KeyCode::RightMouseButton:return VK_RBUTTON;
         default:                       return 0;

@@ -7,6 +7,7 @@ enum class KeyCode {
     W, A, S, D,
     Space,
     Escape,
+    Tab,
     LeftMouseButton,
     RightMouseButton
 };
