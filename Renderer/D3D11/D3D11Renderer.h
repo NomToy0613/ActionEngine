@@ -1,6 +1,7 @@
 #pragma once
 #include "Renderer.h"
 #include "D3D11Context.h"
+#include <unordered_map>
 
 class D3D11Renderer : public Renderer {
 public:
@@ -28,4 +29,16 @@ private:
     Matrix4x4 matView;
     Matrix4x4 matProj;
     Vector3   eye;
+
+    // ObjMeshをGPU用に変換したもの
+    struct GpuMesh {
+        Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;
+        Microsoft::WRL::ComPtr<ID3D11Buffer> indexBuffer;
+        UINT indexCount = 0;
+    };
+
+    // 一度変換したメッシュを覚えておく(キーは元のObjMeshのアドレス)
+    std::unordered_map<const ObjMesh*, GpuMesh> meshCache;
+
+    GpuMesh* GetOrCreateGpuMesh(const ObjMesh& mesh);
 };

@@ -1,5 +1,6 @@
 #include "D3D11Context.h"
 #include <cstdio>
+#include <cstring>
 
 struct TriangleVertex
 {
@@ -73,14 +74,32 @@ bool D3D11Context::Initialize(HWND hwnd, int width, int height)
         backBuffer.Get(), nullptr, m_renderTargetView.GetAddressOf());
     if (FAILED(hr)) return false;
 
+    // 4. 深度バッファを作る
+    D3D11_TEXTURE2D_DESC dd = {};
+    dd.Width            = width;
+    dd.Height           = height;
+    dd.MipLevels        = 1;
+    dd.ArraySize        = 1;
+    dd.Format           = DXGI_FORMAT_D24_UNORM_S8_UINT;
+    dd.SampleDesc.Count = 1;
+    dd.Usage            = D3D11_USAGE_DEFAULT;
+    dd.BindFlags        = D3D11_BIND_DEPTH_STENCIL;
+
+    hr = m_device->CreateTexture2D(&dd, nullptr, m_depthBuffer.GetAddressOf());
+    if (FAILED(hr)) return false;
+
+    hr = m_device->CreateDepthStencilView(m_depthBuffer.Get(), nullptr, m_depthView.GetAddressOf());
+    if (FAILED(hr)) return false;
+
     return true;  
 }
 
 void D3D11Context::BeginFrame(float r, float g, float b)
 {
     const float color[4] = { r, g, b, 1.0f };
-    m_context->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), nullptr);
+    m_context->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthView.Get());
     m_context->ClearRenderTargetView(m_renderTargetView.Get(), color);
+    m_context->ClearDepthStencilView(m_depthView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 }
 
 void D3D11Context::EndFrame()
@@ -163,4 +182,75 @@ void D3D11Context::DrawTriangle()
 
     // 描画
     m_context->Draw(3, 0);
+}
+
+bool D3D11Context::InitMeshPipeline()
+{
+    Microsoft::WRL::ComPtr<ID3DBlob> vsBlob;
+    Microsoft::WRL::ComPtr<ID3DBlob> psBlob;
+
+    if (!CompileShader(L"Shaders/Mesh.hlsl", "VSMain", "vs_5_0", vsBlob.GetAddressOf())) return false;
+    if (!CompileShader(L"Shaders/Mesh.hlsl", "PSMain", "ps_5_0", psBlob.GetAddressOf())) return false;
+
+    HRESULT hr = m_device->CreateVertexShader(
+        vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), nullptr, m_meshVS.GetAddressOf());
+    if (FAILED(hr)) return false;
+
+    hr = m_device->CreatePixelShader(
+        psBlob->GetBufferPointer(), psBlob->GetBufferSize(), nullptr, m_meshPS.GetAddressOf());
+    if (FAILED(hr)) return false;
+
+    D3D11_INPUT_ELEMENT_DESC layout[] =
+    {
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,  D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+    };
+    hr = m_device->CreateInputLayout(
+        layout, 2, vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), m_meshLayout.GetAddressOf());
+    if (FAILED(hr)) return false;
+
+    // 定数バッファ(毎回の描画でCPUから書き換える)
+    D3D11_BUFFER_DESC cbd = {};
+    cbd.ByteWidth      = sizeof(PerObjectCB);
+    cbd.Usage          = D3D11_USAGE_DYNAMIC;
+    cbd.BindFlags      = D3D11_BIND_CONSTANT_BUFFER;
+    cbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+    hr = m_device->CreateBuffer(&cbd, nullptr, m_perObjectCB.GetAddressOf());
+    if (FAILED(hr)) return false;
+
+    return true;
+}
+
+void D3D11Context::DrawMesh(ID3D11Buffer* vertexBuffer, ID3D11Buffer* indexBuffer,
+                            UINT indexCount, const PerObjectCB& cb)
+{
+    // 定数バッファを書き換える
+    D3D11_MAPPED_SUBRESOURCE mapped;
+    if (FAILED(m_context->Map(m_perObjectCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped))) return;
+    memcpy(mapped.pData, &cb, sizeof(PerObjectCB));
+    m_context->Unmap(m_perObjectCB.Get(), 0);
+
+    // RS: ビューポート
+    D3D11_VIEWPORT vp = {};
+    vp.Width    = static_cast<float>(m_width);
+    vp.Height   = static_cast<float>(m_height);
+    vp.MaxDepth = 1.0f;
+    m_context->RSSetViewports(1, &vp);
+
+    // IA: 頂点とインデックス
+    UINT stride = sizeof(GpuVertex);
+    UINT offset = 0;
+    m_context->IASetInputLayout(m_meshLayout.Get());
+    m_context->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
+    m_context->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+    m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+    // VS / PS: シェーダと定数バッファ
+    m_context->VSSetShader(m_meshVS.Get(), nullptr, 0);
+    m_context->VSSetConstantBuffers(0, 1, m_perObjectCB.GetAddressOf());
+    m_context->PSSetShader(m_meshPS.Get(), nullptr, 0);
+    m_context->PSSetConstantBuffers(0, 1, m_perObjectCB.GetAddressOf());
+
+    m_context->DrawIndexed(indexCount, 0, 0);
 }

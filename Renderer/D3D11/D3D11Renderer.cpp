@@ -1,4 +1,7 @@
 #include "D3D11Renderer.h"
+#include <vector>
+#include <cstring>
+#include <cmath>
 
 D3D11Renderer::D3D11Renderer(int width, int height)
     : width(width), height(height)
@@ -8,6 +11,7 @@ bool D3D11Renderer::Initialize(HWND hWnd)
 {
     if (!context.Initialize(hWnd, width, height)) return false;
     if (!context.InitTriangle()) return false;   // 仮:三角形テスト用
+    if (!context.InitMeshPipeline()) return false;
     return true;
 }
 
@@ -19,7 +23,7 @@ void D3D11Renderer::SetEye(const Vector3& e)          { eye = e; }
 void D3D11Renderer::BeginFrame()
 {
     context.BeginFrame(0.1f, 0.2f, 0.4f);
-    context.DrawTriangle();   // 仮:インターフェース経由で動くかの確認用
+    // context.DrawTriangle();   // 仮:インターフェース経由で動くかの確認用
 }
 
 void D3D11Renderer::EndFrame()
@@ -29,7 +33,73 @@ void D3D11Renderer::EndFrame()
 
 void D3D11Renderer::DrawMesh(const ObjMesh& mesh, const Material& material)
 {
-    // 次のステップで実装する
-    (void)mesh;
-    (void)material;
+    if (!mesh.IsValid()) return;
+
+    GpuMesh* gpu = GetOrCreateGpuMesh(mesh);
+    if (!gpu) return;
+
+    Matrix4x4 matWVP = matWorld.ply(matView).ply(matProj);
+
+    PerObjectCB cb = {};
+    memcpy(cb.world,         matWorld.M, sizeof(cb.world));
+    memcpy(cb.worldViewProj, matWVP.M,   sizeof(cb.worldViewProj));
+
+    // 光の向きと環境光(ソフトウェア版と同じ値)
+    float lx = 0.4f, ly = -0.6f, lz = 0.5f;
+    float len = sqrtf(lx * lx + ly * ly + lz * lz);
+    cb.lightDir[0] = lx / len;
+    cb.lightDir[1] = ly / len;
+    cb.lightDir[2] = lz / len;
+    cb.ambient     = 0.25f;
+
+    // COLORREF(0〜255) → 0.0〜1.0
+    cb.color[0] = GetRValue(material.fallbackColor) / 255.0f;
+    cb.color[1] = GetGValue(material.fallbackColor) / 255.0f;
+    cb.color[2] = GetBValue(material.fallbackColor) / 255.0f;
+
+    context.DrawMesh(gpu->vertexBuffer.Get(), gpu->indexBuffer.Get(), gpu->indexCount, cb);
+}
+
+D3D11Renderer::GpuMesh* D3D11Renderer::GetOrCreateGpuMesh(const ObjMesh& mesh)
+{
+    // 既に作ってあればそれを返す
+    auto it = meshCache.find(&mesh);
+    if (it != meshCache.end()) return &it->second;
+
+    // Vertex → GpuVertex に詰め替える
+    std::vector<GpuVertex> vertices(mesh.vertices.size());
+    for (size_t i = 0; i < mesh.vertices.size(); i++) {
+        const Vertex& v = mesh.vertices[i];
+        vertices[i].position[0] = v.position.x;
+        vertices[i].position[1] = v.position.y;
+        vertices[i].position[2] = v.position.z;
+        vertices[i].uv[0] = v.u;
+        vertices[i].uv[1] = v.v;
+    }
+
+    std::vector<UINT> indices(mesh.indices.begin(), mesh.indices.end());
+
+    GpuMesh gpu;
+    ID3D11Device* device = context.GetDevice();
+
+    D3D11_BUFFER_DESC vbd = {};
+    vbd.ByteWidth = static_cast<UINT>(sizeof(GpuVertex) * vertices.size());
+    vbd.Usage     = D3D11_USAGE_IMMUTABLE;
+    vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+    D3D11_SUBRESOURCE_DATA vinit = {};
+    vinit.pSysMem = vertices.data();
+    if (FAILED(device->CreateBuffer(&vbd, &vinit, gpu.vertexBuffer.GetAddressOf()))) return nullptr;
+
+    D3D11_BUFFER_DESC ibd = {};
+    ibd.ByteWidth = static_cast<UINT>(sizeof(UINT) * indices.size());
+    ibd.Usage     = D3D11_USAGE_IMMUTABLE;
+    ibd.BindFlags = D3D11_BIND_INDEX_BUFFER;
+    D3D11_SUBRESOURCE_DATA iinit = {};
+    iinit.pSysMem = indices.data();
+    if (FAILED(device->CreateBuffer(&ibd, &iinit, gpu.indexBuffer.GetAddressOf()))) return nullptr;
+
+    gpu.indexCount = static_cast<UINT>(indices.size());
+
+    auto result = meshCache.emplace(&mesh, gpu);
+    return &result.first->second;
 }
