@@ -22,6 +22,8 @@ namespace {
     }
 }
 
+float Input::wheelDelta = 0.0f;
+
 bool Input::GetKey(KeyCode key)
 {
     int vk = ToVK(key);
@@ -29,4 +31,16 @@ bool Input::GetKey(KeyCode key)
 
     // 最上位ビットが立っていれば押下中
     return (GetAsyncKeyState(vk) & 0x8000) != 0;
+}
+
+void Input::AddWheel(float notches){
+    wheelDelta += notches;
+}
+
+float Input::GetWheel(){
+    return wheelDelta;
+}
+    
+void Input::ResetWheel(){
+    wheelDelta = 0.0f;
 }

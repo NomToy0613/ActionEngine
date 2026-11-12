@@ -51,6 +51,7 @@ int Application::Run()
         }
 
         GameUpdate(deltaTime);
+        Input::ResetWheel();
 
         bool tabDown = Input::GetKey(KeyCode::Tab);
         if (tabDown && !prevTabDown) {
@@ -72,20 +73,20 @@ int Application::Run()
 
 LRESULT CALLBACK Application::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    switch (message)
-    {
-    case WM_PAINT:
-    {
-        PAINTSTRUCT ps;
-        BeginPaint(hWnd, &ps);
-        EndPaint(hWnd, &ps);
-    }
-    break;
-    case WM_DESTROY:
-        PostQuitMessage(0);
-        break;
-    default:
-        return DefWindowProc(hWnd, message, wParam, lParam);
+    switch (message){
+        case WM_PAINT:
+            PAINTSTRUCT ps;
+            BeginPaint(hWnd, &ps);
+            EndPaint(hWnd, &ps);
+            break;
+        case WM_DESTROY:
+            PostQuitMessage(0);
+            break;
+        case WM_MOUSEWHEEL:
+            Input::AddWheel(GET_WHEEL_DELTA_WPARAM(wParam) / (float)WHEEL_DELTA);
+            return 0;
+        default:
+            return DefWindowProc(hWnd, message, wParam, lParam);
     }
     return 0;
 }

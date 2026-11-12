@@ -18,16 +18,16 @@ Vector3 Camera::flatRight() const{
 
 void Camera::update(const Vector3& pivot){
     switch(mode){
-            case CameraMode::FirstPerson:
-                updateFirstPerson(pivot);
-                break;
-            case CameraMode::ThirdPerson:
-                updateThirdPerson(pivot);
-                break;
-            case CameraMode::Overhead:
-                updateOverhead();
-                break;
-        }
+        case CameraMode::FirstPerson:
+            updateFirstPerson(pivot);
+            break;
+        case CameraMode::ThirdPerson:
+            updateThirdPerson(pivot);
+            break;
+        case CameraMode::Overhead:
+            updateOverhead();
+            break;
+    }
 }
 
 Matrix4x4 Camera::view() const {
@@ -50,4 +50,21 @@ void Camera::updateThirdPerson(const Vector3& pivot){
 void Camera::updateOverhead() {
     Vector3 forward(cosf(overheadPitch) * sinf(yaw), sinf(overheadPitch), cosf(overheadPitch) * cosf(yaw), 0.0f);
     eye = target.sub(forward.ply(overheadDistance));
+}
+
+void Camera::zoom(float notches){
+    switch(mode){
+        case CameraMode::FirstPerson:
+            break;
+        case CameraMode::ThirdPerson:
+            distance -= notches * 1.0f;
+            if (distance > 15.0f) distance = 15.0f;
+            if (distance < 2.0f) distance = 2.0f;
+            break;
+        case CameraMode::Overhead:
+            overheadDistance -= notches * 2.0f;
+            if (overheadDistance > 30.0f) overheadDistance = 30.0f;
+            if (overheadDistance < 5.0f) overheadDistance = 5.0f;
+            break;
+    }
 }

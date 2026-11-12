@@ -38,6 +38,8 @@ void GameUpdate(float deltaTime)
         go->transform.rota = go->transform.rota.ply(deltaRot);
     }
     */
+ 
+    c.zoom(Input::GetWheel());
 
     static bool prevCDown = false;
     bool cDown = Input::GetKey(KeyCode::C);
@@ -91,9 +93,16 @@ void GameUpdate(float deltaTime)
 
     float sense = 0.002f; // マウス感度
     c.yaw -= mouseDx * sense;
-    c.pitch += mouseDy * sense;
-    if (c.pitch > 1.5f) c.pitch = 1.5f;
-    if (c.pitch < -1.5f) c.pitch = -1.5f;
+
+    if (c.mode == CameraMode::Overhead){
+        c.overheadPitch += mouseDy * sense;
+        if (c.pitch > -0.5f) c.pitch = -0.5f;
+        if (c.pitch < -1.5f) c.pitch = -1.5f;
+    } else {
+        c.pitch += mouseDy * sense;
+        if (c.pitch > 1.5f) c.pitch = 1.5f;
+        if (c.pitch < -1.5f) c.pitch = -1.5f;
+    }
 
     /*
     // WASDキーによるカメラの移動

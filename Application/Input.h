@@ -13,7 +13,12 @@ enum class KeyCode {
 };
 
 class Input {
+private:
+    static float wheelDelta;   // このフレームに回した量(ノッチ数)
+
 public:
-    // key が現在押下中かどうかを返す
-    static bool GetKey(KeyCode key);
+    static bool GetKey(KeyCode key);     // key が現在押下中かどうかを返す
+    static void AddWheel(float notches); // WndProc から呼んで、量を足す
+    static float GetWheel();             // GameUpdate から呼んで、量を読む
+    static void ResetWheel();            // フレームの最後に 0 に戻す
 };
