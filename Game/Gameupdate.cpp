@@ -2,6 +2,7 @@
 #include <windows.h>
 #include <iostream>
 #include <vector>
+#include <cmath>
 #include "Vector3.h"
 #include "Matrix4x4.h"
 #include "Quaternion.h"
@@ -113,26 +114,34 @@ void GameUpdate(float deltaTime)
     static GameObject* player = nullptr;
     if (!player) player = SceneManager::GetActiveScene().Find("Penguin");
 
-    Vector3 move(0.0f, 0.0f, 0.0f);
+    Vector3 input(0.0f, 0.0f, 0.0f);
     float speed = 5.0f * deltaTime; // 移動速度（1秒間に5ユニット）
 
     if (Input::GetKey(KeyCode::W))
-        move.z += 1.0f;
+        input.z += 1.0f;
     if (Input::GetKey(KeyCode::S))
-        move.z -= 1.0f;
+        input.z -= 1.0f;
     if (Input::GetKey(KeyCode::D))
-        move.x += 1.0f;
+        input.x += 1.0f;
     if (Input::GetKey(KeyCode::A))
-        move.x -= 1.0f;
+        input.x -= 1.0f;
+
+    Vector3 move = c.flatForward().ply(input.z).add(c.flatRight().ply(input.x));
 
     // キーを読み終えてから正規化する（斜め移動が速くならないように）
     move = move.normalize();
 
     if (player) {
         player->transform.posi = player->transform.posi.add(move.ply(speed));
+        if (move.lensq() > 0.0f) { 
+            float angle = atan2f(move.x, move.z);
+            player->transform.rota = Quaternion::axis(angle, Vector3(0.0f, 1.0f, 0.0f));
+        }
+        player->hasMeshRenderer = (c.mode != CameraMode::FirstPerson);
+        c.update(player->transform.posi);
+    }else{
+        c.update(Vector3(0, 0, 0));
     }
-
-    c.update(player->transform.posi.add(Vector3(0.0f, 1.0f, 0.0f)));
 }
 
 // Application::Run() から毎フレーム呼ばれる描画処理。
