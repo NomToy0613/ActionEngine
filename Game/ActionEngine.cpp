@@ -30,6 +30,8 @@ ObjMesh g_groundMesh;
 Texture  g_groundTexture;
 Material g_groundMaterial;
 
+Texture g_paletteTexture;
+
 // デバッグ用コンソールを開く関数
 void OpenConsole()
 {
@@ -112,11 +114,14 @@ void GameInitialize()
 {
     LoadDiceTextures();
     Scene& scene = SceneManager::GetActiveScene();
+    if (!BMPLoader::Load("Assets/Textures/palette.bmp", g_paletteTexture)) {
+        cout << "[警告] palette.bmp の読み込みに失敗しました。\n";
+    }
 
     if (!ObjLoader::Load("Assets/Models/polar_bear.obj", g_testMesh)) {
         cout << "[警告] polar_bear.obj の読み込みに失敗しました。\n";
     }
-    g_testMaterial.texture = nullptr; // テクスチャ無し、フォールバック色で表示
+    g_testMaterial.texture = &g_paletteTexture;
     g_testMaterial.fallbackColor = RGB(240, 240, 245); // 白熊らしい薄い白
 
     GameObject* bear1 = scene.CreateGameObject("PolarBear");
@@ -128,14 +133,14 @@ void GameInitialize()
     if (!ObjLoader::Load("Assets/Models/penguin_blue.obj", g_penguinMesh)) {
         cout << "[警告] penguin_blue.obj の読み込みに失敗しました。\n";
     }
-    g_penguinMaterial.texture = nullptr;
+    g_penguinMaterial.texture = &g_paletteTexture;
     g_penguinMaterial.fallbackColor = RGB(40, 90, 200); // 青単色
 
     GameObject* penguin = scene.CreateGameObject("Penguin");
     penguin->meshRenderer.mesh = &g_penguinMesh;
     penguin->meshRenderer.material = g_penguinMaterial;
     penguin->hasMeshRenderer = true;
-    penguin->transform.posi = Vector3(4.0f, 1.45f, 0.0f); // 既存オブジェクトと離した位置
+    penguin->transform.posi = Vector3(4.0f, 0.0f, 0.0f); // 既存オブジェクトと離した位置
 
     if(!BMPLoader::Load("Assets/Textures/checker.bmp", g_groundTexture)){
         cout << "[警告] checker.bmp の読み込みに失敗しました。\n";
