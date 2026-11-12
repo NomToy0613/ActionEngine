@@ -38,6 +38,26 @@ void GameUpdate(float deltaTime)
     }
     */
 
+    static bool prevCDown = false;
+    bool cDown = Input::GetKey(KeyCode::C);
+    if (cDown && !prevCDown) {
+        switch(c.mode){
+            case CameraMode::FirstPerson:
+                c.mode = CameraMode::ThirdPerson;
+                printf("Camera: ThirdPerson\n");
+                break;
+            case CameraMode::ThirdPerson:
+                c.mode = CameraMode::Overhead;
+                printf("Camera: Overhead\n");
+                break;
+            case CameraMode::Overhead:
+                c.mode = CameraMode::FirstPerson;
+                printf("Camera: FirstPerson\n");
+                break;
+        }
+    }
+    prevCDown = cDown;
+
     // マウスによる視点操作（ピッチ・ヨー）
     float mouseDx = 0.0f;
     float mouseDy = 0.0f;
@@ -112,7 +132,7 @@ void GameUpdate(float deltaTime)
         player->transform.posi = player->transform.posi.add(move.ply(speed));
     }
 
-    c.updateVectors();
+    c.update(player->transform.posi.add(Vector3(0.0f, 1.0f, 0.0f)));
 }
 
 // Application::Run() から毎フレーム呼ばれる描画処理。

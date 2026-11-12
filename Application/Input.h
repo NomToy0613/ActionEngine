@@ -4,7 +4,7 @@
 // Win32のVKコードを直接使わせず抽象化することで、将来的に
 // 別プラットフォームへ移植する際もゲームロジック側のコードを変えずに済む
 enum class KeyCode {
-    W, A, S, D,
+    W, A, S, D, C,
     Space,
     Escape,
     Tab,

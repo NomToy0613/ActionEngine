@@ -11,6 +11,7 @@ namespace {
         case KeyCode::A:               return 'A';
         case KeyCode::S:               return 'S';
         case KeyCode::D:               return 'D';
+        case KeyCode::C:               return 'C';
         case KeyCode::Space:           return VK_SPACE;
         case KeyCode::Escape:          return VK_ESCAPE;
         case KeyCode::Tab:             return VK_TAB;
