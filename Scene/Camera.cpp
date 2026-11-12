@@ -48,5 +48,6 @@ void Camera::updateThirdPerson(const Vector3& pivot){
 }
 
 void Camera::updateOverhead() {
-
+    Vector3 forward(cosf(overheadPitch) * sinf(yaw), sinf(overheadPitch), cosf(overheadPitch) * cosf(yaw), 0.0f);
+    eye = target.sub(forward.ply(overheadDistance));
 }

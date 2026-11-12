@@ -15,10 +15,12 @@ public:
 	Vector3 up;                                //上方向ベクトル
 	float yaw = 0.0f;                          // 水平回転角（マウス用）
 	float pitch = -0.3f;                       // 垂直回転角（マウス用）
-	CameraMode mode = CameraMode::ThirdPerson; 
-	float distance = 6.0f;                     // 三人称・俯瞰でのターゲットからの距離
-	float eyeHeight = 1.5f;                    //一人称の目の高さ
-	float lookHeight = 1.0f;                   //三人称で見る高さ
+	CameraMode mode = CameraMode::FirstPerson; // 初期のカメラモードの値
+	float distance = 6.0f;                     // 三人称でのターゲットからの距離
+	float eyeHeight = 1.5f;                    // 一人称の目の高さ
+	float lookHeight = 1.0f;                   // 三人称で見る高さ
+	float overheadPitch = -1.2f;               // 俯瞰で見下ろす角度(約70°下向き)
+    float overheadDistance = 14.0f;            // 俯瞰での、注視点からの距離
 	
 	//コンストラクタ
 	Camera() :

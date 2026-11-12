@@ -132,10 +132,14 @@ void GameUpdate(float deltaTime)
     move = move.normalize();
 
     if (player) {
-        player->transform.posi = player->transform.posi.add(move.ply(speed));
-        if (move.lensq() > 0.0f) { 
-            float angle = atan2f(move.x, move.z);
-            player->transform.rota = Quaternion::axis(angle, Vector3(0.0f, 1.0f, 0.0f));
+        if (c.mode == CameraMode::Overhead) {
+            c.target = c.target.add(move.ply(speed*2));
+        } else {
+            player->transform.posi = player->transform.posi.add(move.ply(speed));
+            if (move.lensq() > 0.0f) { 
+                float angle = atan2f(move.x, move.z);
+                player->transform.rota = Quaternion::axis(angle, Vector3(0.0f, 1.0f, 0.0f));
+            }
         }
         player->hasMeshRenderer = (c.mode != CameraMode::FirstPerson);
         c.update(player->transform.posi);
